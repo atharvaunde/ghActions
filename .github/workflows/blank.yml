@@ -11,7 +11,7 @@ on:
       - release-*
 jobs:
   Check_ENV:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Check ENV
     outputs:
       output1: ${{ steps.step1.outputs.env }}
@@ -35,7 +35,7 @@ jobs:
           fi
           echo env=$BUILD_ENV >> $GITHUB_OUTPUT
   ECR_Login:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Login to ECR
     needs: [Check_ENV]
     steps:
@@ -46,7 +46,7 @@ jobs:
         # run: aws ecr get-login-password --region {{$SECRETS.AWS_REGION}} | docker login --username AWS --password-stdin {{$SECRETS.AWS_ACCOUNT_ID}}.dkr.ecr.{{$SECRETS.AWS_REGION}}.amazonaws.com
 
   BUILD_ARTIFACT:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Build the Docker Image
     needs: [Check_ENV,ECR_Login]
     outputs:
@@ -68,7 +68,7 @@ jobs:
         run: echo ${TAG}
 
   PUSH_TO_ECR:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Push the Docker Image to ECR
     needs: [Check_ENV,BUILD_ARTIFACT]
     steps:
@@ -78,7 +78,7 @@ jobs:
         run: echo ${{ needs.BUILD_ARTIFACT.outputs.output1 }}
 
   Deploy_to_Development:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Deploy to Development
     needs: [Check_ENV,PUSH_TO_ECR]
     steps:
@@ -91,7 +91,7 @@ jobs:
           fi
 
   Deploy_to_QA:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Deploy to QA
     needs: [Check_ENV,PUSH_TO_ECR]
     steps:
@@ -104,7 +104,7 @@ jobs:
           fi
 
   Deploy_to_Staging:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Deploy to Staging
     needs: [Check_ENV,PUSH_TO_ECR]
     steps:
@@ -117,7 +117,7 @@ jobs:
           fi
 
   Deploy_to_Production:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Deploy to Production
     needs: [Check_ENV,PUSH_TO_ECR]
     steps:
@@ -130,7 +130,7 @@ jobs:
           fi
 
   Notify:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Notify
   # notify will run when either of Deploy_to_Development, Deploy_to_QA, Deploy_to_Staging, Deploy_to_Production is completed
     needs: [Deploy_to_Development,Deploy_to_QA,Deploy_to_Staging,Deploy_to_Production]
@@ -142,7 +142,7 @@ jobs:
           echo "Notify"
 
   Cleanup:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Cleanup
     needs: [Notify]
     steps:
