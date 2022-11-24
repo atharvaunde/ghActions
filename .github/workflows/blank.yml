@@ -24,130 +24,129 @@ jobs:
       - name: Check ENV
         id: check_env
         run: |
-          if [ ${{ github.event.pull_request.base.ref }} == "dev-merge" && ${{ github.event.pull_request.merged }} == "true" ]; then
+          if [ ${{ github.event.pull_request.base.ref }} == "dev-merge" ]; then
             BUILD_ENV=development
-          elif [ ${{ github.event.pull_request.base.ref }} == "qa-merge" && ${{ github.event.pull_request.merged }} == "true" ]; then
+          elif [ ${{ github.event.pull_request.base.ref }} == "qa-merge" ]; then
             BUILD_ENV=qa
-          elif [ ${{ github.event.pull_request.base.ref }} == "stage-merge" && ${{ github.event.pull_request.merged }} == "true" ]; then
+          elif [ ${{ github.event.pull_request.base.ref }} == "stage-merge" ]; then
             BUILD_ENV=staging
-          elif [ ${{ github.event.pull_request.base.ref }} == "release-*" && ${{ github.event.pull_request.merged }} == "true" ]; then
-            BUILD_ENV=production
           fi
           echo env=$BUILD_ENV >> $GITHUB_OUTPUT
-  ECR_Login:
-    runs-on: ubuntu-latest
-    name: Login to ECR
-    needs: [Check_ENV]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Login to ECR
-        run: echo "ECR Login"
+          echo $BUILD_ENV
+  # ECR_Login:
+  #   runs-on: ubuntu-latest
+  #   name: Login to ECR
+  #   needs: [Check_ENV]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Login to ECR
+  #       run: echo "ECR Login"
 
-  BUILD_ARTIFACT:
-    runs-on: ubuntu-latest
-    name: Build the Docker Image
-    needs: [Check_ENV,ECR_Login]
-    outputs:
-      output1: ${{ steps.step1.outputs.imageTag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Generate Image Tag
-        id: step1
-        run: |
-          CURRNET_BRANCH=${{ github.head_ref || github.ref_name }} 
-          CURRENT_PR=${{ github.event.pull_request.number }}
-          CURRENT_TIME_STAMP=$(date "+%Y.%m.%d-%H.%M.%S")
-          REPO_NAME=${{ github.event.repository.name }}
-          BUILD_ENV=${{ needs.Check_ENV.outputs.output1 }}
-          TAG=${BUILD_ENV}_${CURRNET_BRANCH}_${CURRENT_PR}_${CURRENT_TIME_STAMP}
-          echo imageTag=$TAG >> $GITHUB_OUTPUT
-      - name: Build the Docker Image
-        run: echo ${TAG}
+  # BUILD_ARTIFACT:
+  #   runs-on: ubuntu-latest
+  #   name: Build the Docker Image
+  #   needs: [Check_ENV,ECR_Login]
+  #   outputs:
+  #     output1: ${{ steps.step1.outputs.imageTag }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Generate Image Tag
+  #       id: step1
+  #       run: |
+  #         CURRNET_BRANCH=${{ github.head_ref || github.ref_name }} 
+  #         CURRENT_PR=${{ github.event.pull_request.number }}
+  #         CURRENT_TIME_STAMP=$(date "+%Y.%m.%d-%H.%M.%S")
+  #         REPO_NAME=${{ github.event.repository.name }}
+  #         BUILD_ENV=${{ needs.Check_ENV.outputs.output1 }}
+  #         TAG=${BUILD_ENV}_${CURRNET_BRANCH}_${CURRENT_PR}_${CURRENT_TIME_STAMP}
+  #         echo imageTag=$TAG >> $GITHUB_OUTPUT
+  #     - name: Build the Docker Image
+  #       run: echo ${TAG}
 
-  PUSH_TO_ECR:
-    runs-on: ubuntu-latest
-    name: Push the Docker Image to ECR
-    needs: [Check_ENV,BUILD_ARTIFACT]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Push the Docker Image to ECR
-        run: echo ${{ needs.BUILD_ARTIFACT.outputs.output1 }}
+  # PUSH_TO_ECR:
+  #   runs-on: ubuntu-latest
+  #   name: Push the Docker Image to ECR
+  #   needs: [Check_ENV, ECR_LOGIN, BUILD_ARTIFACT]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Push the Docker Image to ECR
+  #       run: echo ${{ needs.BUILD_ARTIFACT.outputs.output1 }}
 
-  Deploy_to_Development:
-    runs-on: ubuntu-latest
-    name: Deploy to Development
-    needs: [Check_ENV,PUSH_TO_ECR]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Deploy to Development
-        run: |
-          if [ ${{ needs.Check_ENV.outputs.output1 }} == "development" ]; then
-            echo "Deploy to Development"
-          fi
+  # Deploy_to_Development:
+  #   runs-on: ubuntu-latest
+  #   name: Deploy to Development
+  #   needs: [Check_ENV,PUSH_TO_ECR]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Deploy to Development
+  #       run: |
+  #         if [ ${{ needs.Check_ENV.outputs.output1 }} == "development" ]; then
+  #           echo "Deploy to Development"
+  #         fi
 
-  Deploy_to_QA:
-    runs-on: ubuntu-latest
-    name: Deploy to QA
-    needs: [Check_ENV,PUSH_TO_ECR]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Deploy to QA
-        run: |
-          if [ ${{ needs.Check_ENV.outputs.output1 }} == "qa" ]; then
-            echo "Deploy to QA"
-          fi
+  # Deploy_to_QA:
+  #   runs-on: ubuntu-latest
+  #   name: Deploy to QA
+  #   needs: [Check_ENV,PUSH_TO_ECR]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Deploy to QA
+  #       run: |
+  #         if [ ${{ needs.Check_ENV.outputs.output1 }} == "qa" ]; then
+  #           echo "Deploy to QA"
+  #         fi
 
-  Deploy_to_Staging:
-    runs-on: ubuntu-latest
-    name: Deploy to Staging
-    needs: [Check_ENV,PUSH_TO_ECR]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Deploy to Staging
-        run: |
-          if [ ${{ needs.Check_ENV.outputs.output1 }} == "staging" ]; then
-            echo "Deploy to Staging"
-          fi
+  # Deploy_to_Staging:
+  #   runs-on: ubuntu-latest
+  #   name: Deploy to Staging
+  #   needs: [Check_ENV,PUSH_TO_ECR]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Deploy to Staging
+  #       run: |
+  #         if [ ${{ needs.Check_ENV.outputs.output1 }} == "staging" ]; then
+  #           echo "Deploy to Staging"
+  #         fi
 
-  Deploy_to_Production:
-    runs-on: ubuntu-latest
-    name: Deploy to Production
-    needs: [Check_ENV,PUSH_TO_ECR]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Deploy to Production
-        run: |
-          if [ ${{ needs.Check_ENV.outputs.output1 }} == "production" ]; then
-            echo "Deploy to Production"
-          fi
+  # Deploy_to_Production:
+  #   runs-on: ubuntu-latest
+  #   name: Deploy to Production
+  #   needs: [Check_ENV,PUSH_TO_ECR]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Deploy to Production
+  #       run: |
+  #         if [ ${{ needs.Check_ENV.outputs.output1 }} == "production" ]; then
+  #           echo "Deploy to Production"
+  #         fi
 
-  Notify:
-    runs-on: ubuntu-latest
-    name: Notify
-    needs: [Deploy_to_Development,Deploy_to_QA,Deploy_to_Staging,Deploy_to_Production]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Notify
-        run: |
-          echo "Notify"
+  # Notify:
+  #   runs-on: ubuntu-latest
+  #   name: Notify
+  #   needs: [Deploy_to_Development,Deploy_to_QA,Deploy_to_Staging,Deploy_to_Production]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Notify
+  #       run: |
+  #         echo "Notify"
 
-  Cleanup:
-    runs-on: ubuntu-latest
-    name: Cleanup
-    needs: [Notify]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Cleanup
-        run: |
-          echo "Cleanup"
+  # Cleanup:
+  #   runs-on: ubuntu-latest
+  #   name: Cleanup
+  #   needs: [Notify]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Cleanup
+  #       run: |
+  #         echo "Cleanup"
 
           
