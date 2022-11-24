@@ -42,8 +42,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Login to ECR
-        run: "ECR Login"
-        # run: aws ecr get-login-password --region {{$SECRETS.AWS_REGION}} | docker login --username AWS --password-stdin {{$SECRETS.AWS_ACCOUNT_ID}}.dkr.ecr.{{$SECRETS.AWS_REGION}}.amazonaws.com
+        run: echo "ECR Login"
 
   BUILD_ARTIFACT:
     runs-on: ubuntu-latest
@@ -132,7 +131,6 @@ jobs:
   Notify:
     runs-on: ubuntu-latest
     name: Notify
-  # notify will run when either of Deploy_to_Development, Deploy_to_QA, Deploy_to_Staging, Deploy_to_Production is completed
     needs: [Deploy_to_Development,Deploy_to_QA,Deploy_to_Staging,Deploy_to_Production]
     steps:
       - name: Checkout
