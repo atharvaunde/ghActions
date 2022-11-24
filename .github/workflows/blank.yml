@@ -1,25 +1,155 @@
-name: CI
+name: "Build and Deploy"
 on:
-
-  push:
-    branches: [ "main" ]
-
+  pull_request:
+    types: [closed]
+    branches:
+      - dev-merge
+      - stage-merge
+      - qa-merge
+  create:
+    branches:
+      - release-*
 jobs:
-  job1:
-    runs-on: ubuntu-latest
-    # Map a step output to a job output
+  Check_ENV:
+    runs-on: self-hosted
+    name: Check ENV
     outputs:
-      output1: ${{ steps.step1.outputs.test }}
-      output2: ${{ steps.step2.outputs.test }}
+      output1: ${{ steps.step1.outputs.env }}
     steps:
-      - id: step1
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Get PR number
+        id: get_pr_number
+        uses: jwalton/gh-find-current-pr@v1
+      - name: Check ENV
+        id: check_env
         run: |
-          CURRENT_TIME_STAMP=$(date "+%Y.%m.%d-%H.%M.%S")
-          TAG=${CURRENT_TIME_STAMP}
-          echo "TAG: $TAG"
-          echo test=$TAG >> $GITHUB_OUTPUT
-  job2:
-    runs-on: ubuntu-latest
-    needs: job1
+          if [ ${{ github.event.pull_request.base.ref }} == "dev-merge" && ${{ github.event.pull_request.merged }} == "true" ]; then
+            BUILD_ENV=development
+          elif [ ${{ github.event.pull_request.base.ref }} == "qa-merge" && ${{ github.event.pull_request.merged }} == "true" ]; then
+            BUILD_ENV=qa
+          elif [ ${{ github.event.pull_request.base.ref }} == "stage-merge" && ${{ github.event.pull_request.merged }} == "true" ]; then
+            BUILD_ENV=staging
+          elif [ ${{ github.event.pull_request.base.ref }} == "release-*" && ${{ github.event.pull_request.merged }} == "true" ]; then
+            BUILD_ENV=production
+          fi
+          echo env=$BUILD_ENV >> $GITHUB_OUTPUT
+  ECR_Login:
+    runs-on: self-hosted
+    name: Login to ECR
+    needs: [Check_ENV]
     steps:
-      - run: echo ${{needs.job1.outputs.output1}}
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Login to ECR
+        run: "ECR Login"
+        # run: aws ecr get-login-password --region {{$SECRETS.AWS_REGION}} | docker login --username AWS --password-stdin {{$SECRETS.AWS_ACCOUNT_ID}}.dkr.ecr.{{$SECRETS.AWS_REGION}}.amazonaws.com
+
+  BUILD_ARTIFACT:
+    runs-on: self-hosted
+    name: Build the Docker Image
+    needs: [Check_ENV,ECR_Login]
+    outputs:
+      output1: ${{ steps.step1.outputs.imageTag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Generate Image Tag
+        id: step1
+        run: |
+          CURRNET_BRANCH=${{ github.head_ref || github.ref_name }} 
+          CURRENT_PR=${{ github.event.pull_request.number }}
+          CURRENT_TIME_STAMP=$(date "+%Y.%m.%d-%H.%M.%S")
+          REPO_NAME=${{ github.event.repository.name }}
+          BUILD_ENV=${{ needs.Check_ENV.outputs.output1 }}
+          TAG=${BUILD_ENV}_${CURRNET_BRANCH}_${CURRENT_PR}_${CURRENT_TIME_STAMP}
+          echo imageTag=$TAG >> $GITHUB_OUTPUT
+      - name: Build the Docker Image
+        run: echo ${TAG}
+
+  PUSH_TO_ECR:
+    runs-on: self-hosted
+    name: Push the Docker Image to ECR
+    needs: [Check_ENV,BUILD_ARTIFACT]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Push the Docker Image to ECR
+        run: echo ${{ needs.BUILD_ARTIFACT.outputs.output1 }}
+
+  Deploy_to_Development:
+    runs-on: self-hosted
+    name: Deploy to Development
+    needs: [Check_ENV,PUSH_TO_ECR]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Deploy to Development
+        run: |
+          if [ ${{ needs.Check_ENV.outputs.output1 }} == "development" ]; then
+            echo "Deploy to Development"
+          fi
+
+  Deploy_to_QA:
+    runs-on: self-hosted
+    name: Deploy to QA
+    needs: [Check_ENV,PUSH_TO_ECR]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Deploy to QA
+        run: |
+          if [ ${{ needs.Check_ENV.outputs.output1 }} == "qa" ]; then
+            echo "Deploy to QA"
+          fi
+
+  Deploy_to_Staging:
+    runs-on: self-hosted
+    name: Deploy to Staging
+    needs: [Check_ENV,PUSH_TO_ECR]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Deploy to Staging
+        run: |
+          if [ ${{ needs.Check_ENV.outputs.output1 }} == "staging" ]; then
+            echo "Deploy to Staging"
+          fi
+
+  Deploy_to_Production:
+    runs-on: self-hosted
+    name: Deploy to Production
+    needs: [Check_ENV,PUSH_TO_ECR]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Deploy to Production
+        run: |
+          if [ ${{ needs.Check_ENV.outputs.output1 }} == "production" ]; then
+            echo "Deploy to Production"
+          fi
+
+  Notify:
+    runs-on: self-hosted
+    name: Notify
+  # notify will run when either of Deploy_to_Development, Deploy_to_QA, Deploy_to_Staging, Deploy_to_Production is completed
+    needs: [Deploy_to_Development,Deploy_to_QA,Deploy_to_Staging,Deploy_to_Production]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Notify
+        run: |
+          echo "Notify"
+
+  Cleanup:
+    runs-on: self-hosted
+    name: Cleanup
+    needs: [Notify]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Cleanup
+        run: |
+          echo "Cleanup"
+
+          
