@@ -18,13 +18,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Get PR number
-        id: get_pr_number
-        uses: jwalton/gh-find-current-pr@v1
       - name: Check ENV
         id: check_env
         run: echo ${{github.base_ref}}
         run: echo ${{github.head_ref}}
+        run: echo ${{github.ref_name}}
   # ECR_Login:
   #   runs-on: ubuntu-latest
   #   name: Login to ECR
