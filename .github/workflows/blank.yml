@@ -30,6 +30,8 @@ jobs:
             BUILD_ENV=qa
           elif [ ${{ github.event.pull_request.base.ref }} == "stage-merge" ]; then
             BUILD_ENV=staging
+          elif [ ${{ github.event.pull_request.base.ref }} == "release-*" ]; then
+            BUILD_ENV=staging
           fi
           echo env=$BUILD_ENV >> $GITHUB_OUTPUT
           echo $BUILD_ENV
