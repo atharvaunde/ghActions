@@ -20,9 +20,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Check ENV
         id: check_env
-        run: echo ${{github.base_ref}}
-        run: echo ${{github.head_ref}}
-        run: echo ${{github.ref_name}}
+        run: echo ${{github.base_ref}} ${{github.head_ref}} ${{github.ref_name}}
   # ECR_Login:
   #   runs-on: ubuntu-latest
   #   name: Login to ECR
