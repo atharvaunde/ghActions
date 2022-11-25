@@ -23,18 +23,8 @@ jobs:
         uses: jwalton/gh-find-current-pr@v1
       - name: Check ENV
         id: check_env
-        run: |
-          if [ ${{ github.event.pull_request.base.ref }} == "dev-merge" ]; then
-            BUILD_ENV=development
-          elif [ ${{ github.event.pull_request.base.ref }} == "qa-merge" ]; then
-            BUILD_ENV=qa
-          elif [ ${{ github.event.pull_request.base.ref }} == "stage-merge" ]; then
-            BUILD_ENV=staging
-          elif [ ${{ github.event.pull_request.base.ref }} == "release-*" ]; then
-            BUILD_ENV=staging
-          fi
-          echo env=$BUILD_ENV >> $GITHUB_OUTPUT
-          echo $BUILD_ENV
+        run: echo ${{github.base_ref}}
+        run: echo ${{github.head_ref}}
   # ECR_Login:
   #   runs-on: ubuntu-latest
   #   name: Login to ECR
